@@ -20,11 +20,11 @@ app.set( "views" , "./view" )
 
 app.get("/",(req,res) =>{
 
-    return res.render("trackingtime");
+    return res.render("trackingTime");
    
 })
 
- app.post("/trackingtime" , urlencodedParser,trackingData)
+ app.post("/trackingTime" , urlencodedParser,trackingData)
 
 
 app.listen( 3000, () => {
