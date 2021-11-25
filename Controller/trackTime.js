@@ -1,7 +1,6 @@
-const bodyParser = require("body-parser");
-
-
 const trackingEvent = require('./trackingEvent');
+
+const { trackData: data, trackData } = require("./trackingdata");
 
 let trackingData = async (req, res) => {
 
@@ -9,21 +8,32 @@ let trackingData = async (req, res) => {
 
         const showData = [];
 
-        reqTrackingEvent = trackingEvent.trackEvent.data;
+        reqTrackingEvent =  trackingEvent?.trackEvent?.data
 
-        ///////////////////////////..........Data Filtering..........///////////////////////////////////////
+        let awbNo = req.body.awbNo;
 
-        let trackingID = req.body.trackingID;
+        /* Map , filter , reduce */
 
-        let filter = reqTrackingEvent.filter((p) => {
 
-            return p.trackingID == trackingID;
+        let finalData = data.find( (i) =>{
+
+            if(i.awbNo == awbNo ) {
+                return i
+            }
 
         })
 
-        console.log("filter-======", filter)
+        
+        ///////////////////////////..........Data Filtering..........///////////////////////////////////////
 
-        ////////////////////////////........Data Sorting............///////////////////////////////////////
+        let filter = reqTrackingEvent.filter((p) => {
+
+            return p.trackingID == finalData.id;
+
+        })
+
+
+        ////////////////////////////........Data Sorting............//////////////////////////////////////
 
         var dataSort = filter.sort((a, b) => {
 
@@ -32,11 +42,17 @@ let trackingData = async (req, res) => {
 
         })
 
+        let intoDays = (1000 * 60 * 60 * 24)
+
         const state_0 = dataSort.find((x) => {
 
             return (x.state == 0);
 
         })
+
+        if (state_0 == undefined) {
+            showData.push(`Shipment Is not booked`)
+        }
 
         const state_1 = dataSort.find((x) => {
 
@@ -44,45 +60,53 @@ let trackingData = async (req, res) => {
 
         })
 
+        if (state_1 != undefined) {
+
+            let timeBtwSB_Pick = Math.ceil(Math.max(1, (new Date(state_1.statusTime).getTime() - new Date(state_0.statusTime).getTime()) / intoDays));
+
+            showData.push(`Time Between Shipment Book to Pickup ${timeBtwSB_Pick} day`)
+
+        }
+
         const state_5 = dataSort.find((x) => {
 
             return (x.state == 5)
 
         })
 
+        if (state_5 != undefined) {
+
+            let timeBtwSB_1_OFD = Math.ceil(Math.max(1, (new Date(state_5.statusTime).getTime() - new Date(state_0.statusTime).getTime()) / intoDays));
+
+            showData.push(`Time Between Shipment Book to 1st_OFD ${timeBtwSB_1_OFD} day`)
+
+            let timeBtwPick_1_OFD = Math.ceil(Math.max(1, (new Date(state_5.statusTime).getTime() - new Date(state_1.statusTime).getTime()) / intoDays));
+
+            showData.push(`Time Between Pickup to 1st_OFD ${timeBtwPick_1_OFD} day`)
+
+        }
+
         const state_7 = dataSort.find((x) => {
 
             return (x.state == 7)
 
-        })
+        });
 
-        ///////////////////////////////......Finding  Time....... ///////////////////////////////////////
+        if (state_7 != undefined) {
 
-        let intoDays = (1000 * 60 * 60 * 24);
+            let timeBtwSB_Del = Math.ceil(Math.max(1, (new Date(state_7.statusTime).getTime() - new Date(state_0.statusTime).getTime()) / intoDays));
 
-        let timeBtwSB_Pick = Math.ceil(Math.max(1, (new Date(state_1.statusTime).getTime() - new Date(state_0.statusTime).getTime()) / intoDays));
+            showData.push(`Time Between Shipment Book to Delivery ${timeBtwSB_Del} day`)
 
-        showData.push(`Time Between Shipment Book to Pickup ${timeBtwSB_Pick} day`)
+            let timeBtwPick_Del = Math.ceil(Math.max(1, (new Date(state_7.statusTime).getTime() - new Date(state_1.statusTime).getTime()) / intoDays));
 
-        let timeBtwSB_1_OFD = Math.ceil(Math.max(1, (new Date(state_5.statusTime).getTime() - new Date(state_0.statusTime).getTime()) / intoDays));
+            showData.push(`Time Between Pickup to Delivery ${timeBtwPick_Del} day`)
 
-        showData.push(`Time Between Shipment Book to 1_OFD ${timeBtwSB_1_OFD} day`)
+            let timeBtw1_OFD_Del = Math.ceil(Math.max(1, (new Date(state_7.statusTime).getTime() - new Date(state_5.statusTime).getTime()) / intoDays));
 
-        let timeBtwSB_Del = Math.ceil(Math.max(1, (new Date(state_7.statusTime).getTime() - new Date(state_0.statusTime).getTime()) / intoDays));
+            showData.push(`Time Between 1st_OFD to Delivery ${timeBtw1_OFD_Del} day`)
 
-        showData.push(`Time Between Shipment Book to Delivery ${timeBtwSB_Del} day`)
-
-        let timeBtwPick_1_OFD = Math.ceil(Math.max(1, (new Date(state_5.statusTime).getTime() - new Date(state_1.statusTime).getTime()) / intoDays));
-
-        showData.push(`Time Between Pickup to 1_OFD ${timeBtwPick_1_OFD} day`)
-
-        let timeBtwPick_Del = Math.ceil(Math.max(1, (new Date(state_7.statusTime).getTime() - new Date(state_1.statusTime).getTime()) / intoDays));
-
-        showData.push(`Time Between Pickup to Delivery ${timeBtwPick_Del} day`)
-
-        let timeBtw1_OFD_Del = Math.ceil(Math.max(1, (new Date(state_7.statusTime).getTime() - new Date(state_5.statusTime).getTime()) / intoDays));
-
-        showData.push(`Time Between 1_OFD to Delivery ${timeBtw1_OFD_Del} day`)
+        }
 
         return res.send(showData);
 
